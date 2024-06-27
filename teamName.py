@@ -1,9 +1,6 @@
+# python eval.py
+
 import numpy as np
-from scipy import stats
-from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
 import warnings
 
 warnings.filterwarnings('ignore')
@@ -12,41 +9,99 @@ nInst = 50
 currentPos = np.zeros(nInst)
 
 def getMyPosition(prcSoFar):
-    global currentPos, model
+    global currentPos
     (nins, nt) = prcSoFar.shape
-    
-    if nt < 50:
+    if (nt < 2):
         return np.zeros(nins)
+    threshold = 0.02
+    change = 0.5
+
+    # Calculate the previous day's return for company 22
+    prev_return_22 = prcSoFar[22, -1] / prcSoFar[22, -2] - 1
+    prev_return_30 = prcSoFar[30, -1] / prcSoFar[30, -2] - 1
+    # prev_return_25 = prcSoFar[25, -1] / prcSoFar[25, -2] - 1
+    prev_return_11 = prcSoFar[11, -1] / prcSoFar[11, -2] - 1
+    # prev_return_38 = prcSoFar[38, -1] / prcSoFar[38, -2] - 1
+
+    # Determine the desired position for company 38
+    if prev_return_22 > threshold and prev_return_30 > threshold: #  and prev_return_25 > threshold
+        desired_position_38 = 10000
+    elif prev_return_22 < threshold and prev_return_30 < threshold: # and prev_return_25 < threshold
+        desired_position_38 = -10000
+    else:
+        desired_position_38 = 0
     
-    if not model.is_trained and nt >= 100:
-        model.train(prcSoFar)
+    # Determine the desired position for company 38
+    if prev_return_22 > threshold and prev_return_11 > threshold: #  and prev_return_38 > threshold
+        desired_position_27 = 10000
+    elif prev_return_22 < threshold and prev_return_11 < threshold: # and prev_return_38 < threshold
+        desired_position_27 = -10000
+    else:
+        desired_position_27 = 0
     
-    if model.is_trained:
-        predictions = model.predict(prcSoFar)
-        
-        # Convert predictions to desired positions
-        desired_positions = predictions * 5000  # Scale predictions to position sizes
-        
-        # Apply position limits ($10k per instrument)
-        max_positions = 10000 / prcSoFar[:, -1]
-        desired_positions = np.clip(desired_positions, -max_positions, max_positions)
-        
-        # Risk management: reduce exposure in high volatility regime
-        volatility = np.std(np.log(prcSoFar[:, -20:] / prcSoFar[:, -21:-1]), axis=1)
-        volatility_factor = 1 / (1 + np.exp(10 * (volatility - np.mean(volatility))))  # Sigmoid function
-        desired_positions *= volatility_factor
-        
-        # Convert to integer positions
-        desired_positions = np.round(desired_positions).astype(int)
-        
-        # Calculate the change in positions
-        position_changes = desired_positions - currentPos
-        
-        # Apply a maximum change of 20% of the maximum allowed position
-        max_change = 0.2 * max_positions
-        position_changes = np.clip(position_changes, -max_change, max_change)
-        
-        # Update current positions
-        currentPos += position_changes.astype(int)
+    # Create the new position array
+    new_pos = np.zeros(nins)
+    new_pos[38] = desired_position_38
+    new_pos[27] = desired_position_27
     
+    # Calculate the change in positions
+    position_changes = new_pos - currentPos
+    
+    # Apply a maximum change of 20% of the maximum allowed position
+    max_change = 10000 * change
+    position_changes = np.clip(position_changes, -max_change, max_change)
+    
+    # Update current positions
+    currentPos += position_changes.astype(int)
+
     return currentPos
+
+# def getMyPosition(prcSoFar):
+    
+#     (nins, nt) = prcSoFar.shape
+#     currentPos = np.zeros(nins)
+#     threshold = 0.02
+#     change = 0.5
+    
+#     if (nt < 2):
+#         return np.zeros(nins)
+    
+#     # Calculate the previous day's return for company 22
+#     prev_return_22 = prcSoFar[22, -1] / prcSoFar[22, -2] - 1
+#     prev_return_30 = prcSoFar[30, -1] / prcSoFar[30, -2] - 1
+#     # prev_return_25 = prcSoFar[25, -1] / prcSoFar[25, -2] - 1
+#     prev_return_11 = prcSoFar[11, -1] / prcSoFar[11, -2] - 1
+#     # prev_return_38 = prcSoFar[38, -1] / prcSoFar[38, -2] - 1
+
+#     # Determine the desired position for company 38
+#     if prev_return_22 > threshold and prev_return_30 > threshold: #  and prev_return_25 > threshold
+#         desired_position_38 = 10000
+#     elif prev_return_22 < threshold and prev_return_30 < threshold: # and prev_return_25 < threshold
+#         desired_position_38 = -10000
+#     else:
+#         desired_position_38 = 0
+    
+#     # Determine the desired position for company 38
+#     if prev_return_22 > threshold and prev_return_11 > threshold: #  and prev_return_38 > threshold
+#         desired_position_27 = 10000
+#     elif prev_return_22 < threshold and prev_return_11 < threshold: # and prev_return_38 < threshold
+#         desired_position_27 = -10000
+#     else:
+#         desired_position_27 = 0
+    
+#     # Create the new position array
+#     new_pos = np.zeros(nins)
+#     new_pos[38] = desired_position_38
+#     new_pos[27] = desired_position_27
+    
+#     # Calculate the change in positions
+#     position_changes = new_pos - currentPos
+    
+#     # Apply a maximum change of 20% of the maximum allowed position
+#     max_change = 10000 * change
+#     position_changes = np.clip(position_changes, -max_change, max_change)
+    
+#     # Update current positions
+#     currentPos += position_changes.astype(int)
+
+#     return currentPos
