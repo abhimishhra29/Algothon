@@ -15,7 +15,7 @@ def getMyPosition(prcSoFar):
         return np.zeros(nins)
     threshold = 0.02
     change = 0.5
-
+    
     # Calculate the previous day's return for company 22
     prev_return_22 = prcSoFar[22, -1] / prcSoFar[22, -2] - 1
     prev_return_30 = prcSoFar[30, -1] / prcSoFar[30, -2] - 1
